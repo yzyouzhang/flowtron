@@ -837,7 +837,7 @@ class Flowtron(torch.nn.Module):
 
         super(Flowtron, self).__init__()
         norm_fn = MaskedInstanceNorm1d
-        self.speaker_embedding = torch.nn.Embedding(n_speakers, n_speaker_dim)
+        self.speaker_embedding = torch.nn.Linear(512, n_speaker_dim)
         self.embedding = torch.nn.Embedding(n_text, n_text_dim)
         self.flows = torch.nn.ModuleList()
         self.encoder = Encoder(norm_fn=norm_fn, encoder_embedding_dim=n_text_dim)
@@ -869,8 +869,9 @@ class Flowtron(torch.nn.Module):
 
     def forward(self, mel, speaker_ids, text, in_lens, out_lens,
                 attn_prior=None):
-        speaker_ids = speaker_ids*0 if self.dummy_speaker_embedding else speaker_ids
-        speaker_vecs = self.speaker_embedding(speaker_ids)
+        # speaker_ids = speaker_ids*0 if self.dummy_speaker_embedding else speaker_ids
+        # print(speaker_ids.shape)
+        speaker_vecs = self.speaker_embedding(speaker_ids.float())
         text = self.embedding(text).transpose(1, 2)
         text = self.encoder(text, in_lens)
 

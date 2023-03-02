@@ -28,6 +28,8 @@ from data import Data, DataCollate
 from flowtron_logger import FlowtronLogger
 from radam import RAdam
 
+from tqdm import tqdm
+
 # =====START: ADDED FOR DISTRIBUTED======
 from distributed import init_distributed
 from distributed import apply_gradient_allreduce
@@ -58,7 +60,7 @@ def update_params(config, params):
 
 
 def prepare_dataloaders(data_config, n_gpus, batch_size):
-    # Get data, data loaders and 1ollate function ready
+    # Get data, data loaders and collate function ready
     ignore_keys = ['training_files', 'validation_files']
     trainset = Data(data_config['training_files'],
                     **dict((k, v) for k, v in data_config.items()
@@ -276,7 +278,7 @@ def train(n_gpus, rank, output_directory, epochs, optim_algo, learning_rate,
     apply_ctc = False
 
     # ================ MAIN TRAINNIG LOOP! ===================
-    for epoch in range(epoch_offset, epochs):
+    for epoch in tqdm(range(epoch_offset, epochs)):
         print("Epoch: {}".format(epoch))
         for batch in train_loader:
             model.zero_grad()
@@ -384,6 +386,8 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--params', nargs='+', default=[])
     args = parser.parse_args()
     args.rank = 0
+
+    torch.multiprocessing.set_start_method('spawn')
 
     # Parse configs.  Globals nicer in this case
     with open(args.config) as f:

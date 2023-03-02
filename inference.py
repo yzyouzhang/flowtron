@@ -51,8 +51,9 @@ def infer(flowtron_path, waveglow_path, output_dir, text, speaker_id, n_frames,
 
     # load flowtron
     model = Flowtron(**model_config).cuda()
-    state_dict = torch.load(flowtron_path, map_location='cpu')['state_dict']
-    model.load_state_dict(state_dict)
+    state_dict = torch.load(flowtron_path, map_location='cpu')['model']
+    # model.load_state_dict(state_dict)
+    model = state_dict.cuda()
     model.eval()
     print("Loaded checkpoint '{}')" .format(flowtron_path))
 
@@ -72,11 +73,11 @@ def infer(flowtron_path, waveglow_path, output_dir, text, speaker_id, n_frames,
 
     for k in range(len(attentions)):
         attention = torch.cat(attentions[k]).cpu().numpy()
-        fig, axes = plt.subplots(1, 2, figsize=(16, 4))
-        axes[0].imshow(mels[0].cpu().numpy(), origin='bottom', aspect='auto')
-        axes[1].imshow(attention[:, 0].transpose(), origin='bottom', aspect='auto')
-        fig.savefig(os.path.join(output_dir, 'sid{}_sigma{}_attnlayer{}.png'.format(speaker_id, sigma, k)))
-        plt.close("all")
+        # fig, axes = plt.subplots(1, 2, figsize=(16, 4))
+        # axes[0].imshow(mels[0].cpu().numpy(), origin='bottom', aspect='auto')
+        # axes[1].imshow(attention[:, 0].transpose(), origin='bottom', aspect='auto')
+        # fig.savefig(os.path.join(output_dir, 'sid{}_sigma{}_attnlayer{}.png'.format(speaker_id, sigma, k)))
+        # plt.close("all")
 
     with torch.no_grad():
         audio = waveglow.infer(mels.half(), sigma=0.8).float()

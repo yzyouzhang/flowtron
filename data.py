@@ -26,6 +26,8 @@ from scipy.io.wavfile import read
 from scipy.stats import betabinom
 from audio_processing import TacotronSTFT
 from text import text_to_sequence, cmudict, _clean_text, get_arpabet
+import torchaudio
+import torchaudio.transforms as T
 
 
 def beta_binomial_prior_distribution(phoneme_count, mel_count,
@@ -52,8 +54,14 @@ def load_filepaths_and_text(filelist, split="|"):
 
 def load_wav_to_torch(full_path):
     """ Loads wavdata into torch array """
-    sampling_rate, data = read(full_path)
-    return torch.from_numpy(data).float(), sampling_rate
+    # sampling_rate, data = read(full_path)
+    # waveform = torch.from_numpy(data).float()
+    waveform, sampling_rate = torchaudio.load(full_path, normalize=True)
+    # waveform = waveform.unsqueeze(0)
+    # resampler = T.Resample(sampling_rate, 22050, dtype=waveform.dtype)
+    # resampled_waveform = resampler(waveform)
+    # resampled_waveform = resampled_waveform.squeeze(0)
+    return waveform.squeeze(0), sampling_rate
 
 
 class Data(torch.utils.data.Dataset):
@@ -155,7 +163,8 @@ class Data(torch.utils.data.Dataset):
         return melspec
 
     def get_speaker_id(self, speaker_id):
-        return torch.LongTensor([self.speaker_ids[int(speaker_id)]])
+        # return torch.LongTensor([self.speaker_ids[int(speaker_id)]])
+        return torch.load('/home/neil/c1_ex1/speaker_embeddings/c1_mls_resnet_tf512dim_spk_embed/%s_emb.pt' % speaker_id, map_location=torch.device('cuda'))
 
     def get_text(self, text):
         text = _clean_text(text, self.text_cleaners)
@@ -228,7 +237,7 @@ class DataCollate():
             attn_prior_padded = torch.FloatTensor(
                 len(batch), max_target_len, max_input_len)
             attn_prior_padded.zero_()
-        speaker_ids = torch.LongTensor(len(batch))
+        speaker_ids = torch.LongTensor(len(batch), 512)
         for i in range(len(ids_sorted_decreasing)):
             mel = batch[ids_sorted_decreasing[i]][0]
             mel_padded[i, :, :mel.size(1)] = mel
@@ -241,7 +250,7 @@ class DataCollate():
                     i,
                     :cur_attn_prior.size(0),
                     :cur_attn_prior.size(1)] = cur_attn_prior
-
+        # print(speaker_ids.shape)
         return (mel_padded, speaker_ids, text_padded, input_lengths,
                 output_lengths, gate_padded, attn_prior_padded)
 
